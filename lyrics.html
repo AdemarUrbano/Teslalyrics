@@ -16,8 +16,10 @@ button{font:inherit;background:var(--hi);color:#2a1a05;border:0;border-radius:10
 button.ghost{background:transparent;color:var(--dim);border:1px solid #333a4a;font-weight:400;padding:6px 12px}
 button:focus-visible,input:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
 main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:4vh 6vw;overflow:hidden;text-align:center}
-.line{font-size:clamp(1.3rem,3.2vw,2.2rem);line-height:1.35;color:var(--dim);margin:.45em 0;transition:color .25s,font-size .25s,opacity .25s;opacity:.55}
-.line.cur{color:var(--hi);font-size:clamp(2rem,6vw,4.2rem);font-weight:700;opacity:1;line-height:1.2}
+#stage{flex:1;position:relative;overflow:hidden;-webkit-mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent);mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent)}
+#reel{position:absolute;left:0;right:0;top:0;transition:transform .8s cubic-bezier(.25,.8,.25,1);will-change:transform}
+.line{width:64%;margin:0 auto;padding:.8em 0;font-size:clamp(1.2rem,2.8vw,2rem);font-weight:600;line-height:1.3;color:var(--dim);transform-origin:center;transition:transform .6s cubic-bezier(.25,.8,.25,1),opacity .6s,color .6s}
+.line.cur{color:var(--hi)}
 #plain{white-space:pre-wrap;text-align:left;max-width:60ch;margin:0 auto;overflow:auto;font-size:1.4rem;line-height:1.5;color:var(--ink)}
 .msg{color:var(--dim);font-size:1.2rem;max-width:46ch;margin:0 auto;line-height:1.5}
 #setup{max-width:520px;margin:0 auto;text-align:left;background:var(--panel);padding:22px;border-radius:14px;display:none}
@@ -27,20 +29,26 @@ main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:4v
 #setup button{margin-top:16px}
 footer{padding:10px 22px;display:flex;gap:14px;align-items:center;border-top:1px solid #262b38;color:var(--dim);font-size:.9rem}
 footer label{display:flex;gap:6px;align-items:center;cursor:pointer}
+:root[data-theme="light"]{--bg:#f4f1ea;--ink:#1c2030;--dim:#6f7588;--hi:#b8520a;--panel:#fff;color-scheme:light}
+:root[data-theme="light"] header,:root[data-theme="light"] footer{border-color:#ddd6c6}
+:root[data-theme="light"] button.ghost,:root[data-theme="light"] #setup input{border-color:#d3ccbb}
+:root[data-theme="light"] #setup input,:root[data-theme="light"] #setup code{background:#f4f1ea;color:var(--ink)}
+:root[data-theme="light"] button:not(.ghost){color:#fff}
+:root[data-theme="light"] .line:not(.cur){opacity:.8}
 #ver{position:fixed;right:10px;bottom:8px;font-size:.7rem;color:var(--dim);opacity:.8;pointer-events:none}
 body.moving main{filter:blur(18px);opacity:.15;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.line{transition:none}}
 </style>
 </head>
 <body>
-<header><div id="track">Nada a tocar</div><button class="ghost" id="logout" hidden>Sair</button></header>
+<header><div id="track">Nada a tocar</div><div style="display:flex;gap:8px;align-items:center;flex:none"><button class="ghost" id="theme">Claro</button><button class="ghost" id="logout" hidden>Sair</button></div></header>
 <main id="main"></main>
 <footer>
   <label><input type="checkbox" id="hideMoving"> Esconder letra com o carro em movimento (GPS)</label>
   <span id="speed"></span>
 </footer>
 
-<div id="ver">v1.3</div>
+<div id="ver">v1.4</div>
 <script>
 window.addEventListener("error",function(e){var m=document.getElementById("main");if(m)m.innerHTML='<p class="msg">Erro: '+e.message+'</p>';});
 window.addEventListener("unhandledrejection",function(e){var m=document.getElementById("main");if(m)m.innerHTML='<p class="msg">Erro: '+(e.reason&&e.reason.message||e.reason)+'</p>';});
@@ -103,6 +111,14 @@ async function getToken(){
 }
 function logout(){ ["access","refresh","expires"].forEach(store.del); location.reload(); }
 $("logout").onclick = logout;
+
+/* ---------- Tema ---------- */
+function applyTheme(t){ document.documentElement.dataset.theme = t; $("theme").textContent = t === "light" ? "Escuro" : "Claro"; }
+applyTheme(store.get("theme") === "light" ? "light" : "dark");
+$("theme").onclick = () => {
+  const t = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  store.set("theme", t); applyTheme(t);
+};
 
 /* ---------- UI ---------- */
 function showSetup(){
