@@ -41,8 +41,8 @@ body.moving main{filter:blur(18px);opacity:.15;pointer-events:none}
 
 <script>
 const SCOPES = "user-read-currently-playing user-read-playback-state";
+const CLIENT_ID = "6788a6ccc7f74d33be73b050dfa7ce06"; // cola aqui o teu Client ID, entre as aspas
 const REDIRECT = location.origin + location.pathname;
-store.set("cid", "6788a6ccc7f74d33be73b050dfa7ce06");
 const $ = id => document.getElementById(id);
 const main = $("main"), trackEl = $("track");
 const store = {
@@ -58,7 +58,7 @@ async function challenge(v){
   return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 }
 async function login(){
-  const id = $("cid").value.trim();
+  const id = CLIENT_ID || $("cid").value.trim();
   if(!id) return;
   store.set("cid", id);
   const verifier = rand(64);
@@ -95,6 +95,11 @@ $("logout").onclick = logout;
 
 /* ---------- UI ---------- */
 function showSetup(){
+  if(CLIENT_ID){
+    main.innerHTML = `<div id="setup" style="display:block;text-align:center"><h2 style="margin:0 0 14px">Letras</h2><button id="go">Entrar com Spotify</button></div>`;
+    $("go").onclick = login;
+    return;
+  }
   main.innerHTML = `<div id="setup" style="display:block">
     <h2 style="margin:0 0 6px">Ligar ao Spotify</h2>
     <div class="msg" style="margin:0;font-size:1rem">Cria uma app em developer.spotify.com e adiciona este endereço como Redirect URI:</div>
