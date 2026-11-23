@@ -42,6 +42,7 @@ body.moving main{filter:blur(18px);opacity:.15;pointer-events:none}
 <script>
 const SCOPES = "user-read-currently-playing user-read-playback-state";
 const REDIRECT = location.origin + location.pathname;
+store.set("cid", "6788a6ccc7f74d33be73b050dfa7ce06");
 const $ = id => document.getElementById(id);
 const main = $("main"), trackEl = $("track");
 const store = {
