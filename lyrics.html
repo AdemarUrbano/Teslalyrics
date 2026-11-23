@@ -34,10 +34,9 @@ footer label{display:flex;gap:6px;align-items:center;cursor:pointer}
 :root[data-theme="light"] button.ghost,:root[data-theme="light"] #setup input{border-color:#d3ccbb}
 :root[data-theme="light"] #setup input,:root[data-theme="light"] #setup code{background:#f4f1ea;color:var(--ink)}
 :root[data-theme="light"] button:not(.ghost){color:#fff}
-:root[data-theme="light"] .line:not(.cur){opacity:.8}
 #ver{position:fixed;right:10px;bottom:8px;font-size:.7rem;color:var(--dim);opacity:.8;pointer-events:none}
 body.moving main{filter:blur(18px);opacity:.15;pointer-events:none}
-@media (prefers-reduced-motion:reduce){.line{transition:none}}
+@media (prefers-reduced-motion:reduce){.line,#reel{transition:none}}
 </style>
 </head>
 <body>
@@ -48,7 +47,7 @@ body.moving main{filter:blur(18px);opacity:.15;pointer-events:none}
   <span id="speed"></span>
 </footer>
 
-<div id="ver">v1.4</div>
+<div id="ver">v1.5</div>
 <script>
 window.addEventListener("error",function(e){var m=document.getElementById("main");if(m)m.innerHTML='<p class="msg">Erro: '+e.message+'</p>';});
 window.addEventListener("unhandledrejection",function(e){var m=document.getElementById("main");if(m)m.innerHTML='<p class="msg">Erro: '+(e.reason&&e.reason.message||e.reason)+'</p>';});
@@ -164,30 +163,42 @@ async function fetchLyrics(item){
   }
   return r.json();
 }
+function lineIndex(){
+  const t = (progress + performance.now() - stamp)/1000;
+  let idx = -1;
+  for(let i=0;i<current.lines.length;i++){ if(current.lines[i].t <= t) idx = i; else break; }
+  return idx;
+}
 function renderLines(){
-  main.innerHTML = "";
+  main.innerHTML = '<div id="stage"><div id="reel"></div></div>';
+  const reel = $("reel");
   current.lines.forEach((l,i)=>{
     const d = document.createElement("div");
     d.className = "line"; d.id = "l"+i; d.textContent = l.text || "♪";
-    main.appendChild(d);
+    reel.appendChild(d);
   });
-  lastIdx = -2;
+  lastIdx = lineIndex();
+  focusLine(lastIdx, true);
 }
+function focusLine(idx, instant){
+  const reel = $("reel"), stage = $("stage");
+  if(!reel || !reel.children.length) return;
+  const lines = reel.children, f = Math.max(idx, 0), el = lines[f];
+  if(instant) reel.style.transition = "none";
+  reel.style.transform = "translateY(" + (stage.clientHeight/2 - (el.offsetTop + el.offsetHeight/2)) + "px)";
+  for(let i=0;i<lines.length;i++){
+    const d = Math.abs(i - f), cur = idx >= 0 && i === idx;
+    lines[i].classList.toggle("cur", cur);
+    lines[i].style.opacity = cur ? 1 : (d === 0 ? .6 : Math.max(.12, .62 - d*.17));
+    lines[i].style.transform = cur ? "scale(1.5)" : "scale(1)";
+  }
+  if(instant){ void reel.offsetHeight; reel.style.transition = ""; }
+}
+window.addEventListener("resize", () => focusLine(lastIdx, true));
 function tick(){
   if(current.lines && playing){
-    const t = (progress + performance.now() - stamp)/1000;
-    let idx = -1;
-    for(let i=0;i<current.lines.length;i++){ if(current.lines[i].t <= t) idx = i; else break; }
-    if(idx !== lastIdx){
-      lastIdx = idx;
-      document.querySelectorAll(".line").forEach(e=>e.classList.remove("cur"));
-      const el = $("l"+idx);
-      if(el){
-        el.classList.add("cur");
-        const lines = [...document.querySelectorAll(".line")];
-        lines.forEach((e,i)=>{ e.style.display = Math.abs(i-idx) <= 2 ? "" : "none"; });
-      }
-    }
+    const idx = lineIndex();
+    if(idx !== lastIdx){ lastIdx = idx; focusLine(idx); }
   }
   requestAnimationFrame(tick);
 }
