@@ -40,7 +40,7 @@ body.moving main{filter:blur(18px);opacity:.15;pointer-events:none}
   <span id="speed"></span>
 </footer>
 
-<div id="ver">v1.2</div>
+<div id="ver">v1.3</div>
 <script>
 window.addEventListener("error",function(e){var m=document.getElementById("main");if(m)m.innerHTML='<p class="msg">Erro: '+e.message+'</p>';});
 window.addEventListener("unhandledrejection",function(e){var m=document.getElementById("main");if(m)m.innerHTML='<p class="msg">Erro: '+(e.reason&&e.reason.message||e.reason)+'</p>';});
@@ -94,7 +94,12 @@ async function getToken(){
   try{
     await tokenRequest({client_id:store.get("cid"),grant_type:"refresh_token",refresh_token:store.get("refresh")});
     return store.get("access");
-  }catch(e){ logout(); return null; }
+  }catch(e){
+    store.del("access"); store.del("refresh"); $("logout").hidden = true;
+    showSetup();
+    main.insertAdjacentHTML("beforeend", '<p class="msg">A sessão expirou e não foi possível renová-la (' + e.message + '). Entra de novo.</p>');
+    return null;
+  }
 }
 function logout(){ ["access","refresh","expires"].forEach(store.del); location.reload(); }
 $("logout").onclick = logout;
@@ -216,6 +221,8 @@ $("hideMoving").onchange = e => {
   await handleRedirect();
   if(!store.get("access")){
     showSetup();
+    store.set("t","1");
+    if(store.get("t") !== "1") main.insertAdjacentHTML("beforeend", '<p class="msg">Este browser não está a guardar dados do site, por isso o login não fica guardado.</p>');
     if(window.authErr) main.insertAdjacentHTML("beforeend", '<p class="msg">Erro no login: ' + window.authErr + '. Confirma que o Redirect URI no Spotify é exatamente ' + REDIRECT + '</p>');
     return;
   }
