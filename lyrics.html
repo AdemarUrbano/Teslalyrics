@@ -27,6 +27,7 @@ main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:4v
 #setup button{margin-top:16px}
 footer{padding:10px 22px;display:flex;gap:14px;align-items:center;border-top:1px solid #262b38;color:var(--dim);font-size:.9rem}
 footer label{display:flex;gap:6px;align-items:center;cursor:pointer}
+#ver{position:fixed;right:10px;bottom:8px;font-size:.7rem;color:var(--dim);opacity:.8;pointer-events:none}
 body.moving main{filter:blur(18px);opacity:.15;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.line{transition:none}}
 </style>
@@ -39,9 +40,14 @@ body.moving main{filter:blur(18px);opacity:.15;pointer-events:none}
   <span id="speed"></span>
 </footer>
 
+<div id="ver">v1.2</div>
+<script>
+window.addEventListener("error",function(e){var m=document.getElementById("main");if(m)m.innerHTML='<p class="msg">Erro: '+e.message+'</p>';});
+window.addEventListener("unhandledrejection",function(e){var m=document.getElementById("main");if(m)m.innerHTML='<p class="msg">Erro: '+(e.reason&&e.reason.message||e.reason)+'</p>';});
+</script>
 <script>
 const SCOPES = "user-read-currently-playing user-read-playback-state";
-const CLIENT_ID = "6788a6ccc7f74d33be73b050dfa7ce06"; // cola aqui o teu Client ID, entre as aspas
+const CLIENT_ID = ""; // cola aqui o teu Client ID, entre as aspas
 const REDIRECT = location.origin + location.pathname;
 const $ = id => document.getElementById(id);
 const main = $("main"), trackEl = $("track");
@@ -80,7 +86,7 @@ async function handleRedirect(){
   history.replaceState({}, "", location.pathname);
   try{
     await tokenRequest({client_id:store.get("cid"),grant_type:"authorization_code",code,redirect_uri:REDIRECT,code_verifier:store.get("verifier")});
-  }catch(e){ console.error(e); }
+  }catch(e){ console.error(e); window.authErr = e.message; }
 }
 async function getToken(){
   if(!store.get("access")) return null;
@@ -189,7 +195,7 @@ async function poll(){
       else if(ly && ly.instrumental){ showMsg("Instrumental."); }
       else showMsg("Letra não encontrada para esta música.");
     }
-  }catch(e){ console.error(e); }
+  }catch(e){ console.error(e); if(!current.id) showMsg("Erro ao obter a música: " + e.message); }
 }
 
 /* ---------- GPS: esconder letra em movimento ---------- */
@@ -208,7 +214,11 @@ $("hideMoving").onchange = e => {
 /* ---------- Start ---------- */
 (async function(){
   await handleRedirect();
-  if(!store.get("access")){ showSetup(); return; }
+  if(!store.get("access")){
+    showSetup();
+    if(window.authErr) main.insertAdjacentHTML("beforeend", '<p class="msg">Erro no login: ' + window.authErr + '. Confirma que o Redirect URI no Spotify é exatamente ' + REDIRECT + '</p>');
+    return;
+  }
   $("logout").hidden = false;
   showMsg("A ligar…");
   poll(); setInterval(poll, 4000);
